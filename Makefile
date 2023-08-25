@@ -1,5 +1,5 @@
 nostalgia: Main.vala Window.vala HeaderBar.vala Nostalgia.vala
-	valac --pkg libnotify --pkg gtk+-3.0 Main.vala Window.vala HeaderBar.vala Nostalgia.vala -o nostalgia
+	valac --pkg libnotify --pkg gtk+-3.0 --pkg gio-2.0 Main.vala Window.vala HeaderBar.vala Nostalgia.vala -o nostalgia
 
 install: nostalgia nostalgia-launcher.desktop
 	cp ./nostalgia /usr/bin/

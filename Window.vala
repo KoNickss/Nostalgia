@@ -173,11 +173,21 @@ so please be patient and let us get your system back and running"), true, false,
 					string isft = crloc1.get_filename() + "/nostalgia.file: empty ";
 					print(isfile);
 					print(isft);
+
+					var lbl = new Gtk.TextView();
+					lbl.set_wrap_mode (Gtk.WrapMode.WORD);
+					lbl.set_monospace(true);
+
+					var lblScroll = new Gtk.ScrolledWindow(null, null);
+					lblScroll.add(lbl);
+					lblScroll.set_max_content_height(100);
+					
+					progresscr.pack_start(lblScroll);
 					//The length will never be the same if the file is not found
 					if(isfile.char_count() != isft.char_count()){
 						print("\n root backup \n");
 						string testx;
-						Process.spawn_command_line_sync("bash command", out testx);
+						//Process.spawn_command_line_sync("bash command", out testx);
 						progresscr.pack_start(new Gtk.Label(testx));
 						//print(testx);
 						progresscr.pack_start(new Gtk.Label("This seems to be your first nostalgia backup on this harddrive, so it will take a while"), false, false, 10);
@@ -188,34 +198,34 @@ so please be patient and let us get your system back and running"), true, false,
 					int otcr;
 					int dum;
 					bool lop=true;
-					//Process.spawn_async_with_pipes(loc, {"rsync", "-a", "~/debian", "~/test", "--no-i-r"}, spawn_env1, SpawnFlags.SEARCH_PATH | SpawnFlags.DO_NOT_REAP_CHILD, null, out rpid, out dum, out otcr, out dum);
-					Process.spawn_async_with_pipes(loc, {"bash", "install"}, spawn_env1, SpawnFlags.SEARCH_PATH | SpawnFlags.DO_NOT_REAP_CHILD, null, out rpid, out dum, out otcr, out dum);
-					IOChannel outputcr = new IOChannel.unix_new(otcr);
-					outputcr.add_watch(IOCondition.IN | IOCondition.HUP, (channel, condition) => {
-						return process_line(channel, condition, "stdout", out laoutput, out upol);
+
+					string[] backup_command = {"/usr/bin/rsync", "-av", "/home/ioachim/Music", "/home/ioachim/Music2", "--no-i-r", "--info=progress2", null};
+
+					var ChildProcessBackup = new Subprocess.newv(backup_command, SubprocessFlags.STDOUT_PIPE);
+
+					ChildProcessBackup.wait_check_async.begin(null, (obj, res) => {
+						try{
+							ChildProcessBackup.wait_check_async.end(res);
+							print("\n\n-------SUCCESFULL------\n\n");
+
+							ssnap = false;
+							createstack.set_visible_child(cr1);
+							Notify.init("Nostalgia");
+							var notification = new Notify.Notification("Nostalgia", "Your snapshot is ready", "deja-dup");
+							notification.set_timeout(0);
+							notification.show();
+
+
+						}catch(Error err){
+							print("\n\n------ERROR!!!------\n%s\n\n", err.message);
+						}
 					});
-					bool should_stop = false;
-					var ol = new Gtk.Label(laoutput);
-					ChildWatch.add(rpid, (pid, status) => {
-						Process.close_pid(rpid);
-						print("hihi");
-						ssnap=false;
-						createstack.set_visible_child(cr1);
-						lop=false;
-						Notify.init("Nostalgia");
-						var notification = new Notify.Notification("Nostalgia", "Your snapshot is ready", "deja-dup");
-						notification.set_timeout(0);
-						notification.show();
-						should_stop = true;
-						progresscr.remove(ol);
-					});
-					progresscr.pack_start(ol, true, true, 10);
-					show_all();
-					Timeout.add(750, () => {
-						ol.set_text(laoutput);
-						show_all();
-						return should_stop ? Source.REMOVE : Source.CONTINUE;
-					});
+
+
+					var OutputPipeBackup = ChildProcessBackup.get_stdout_pipe();
+
+					update_label_from_istream.begin(OutputPipeBackup, lbl);	
+					
 				}
 			}
 		});
@@ -231,6 +241,19 @@ so please be patient and let us get your system back and running"), true, false,
 		set_resizable(false);
 		show_all();
 		print("Hey, thanks for choosing nostalgia! \n");
-		print("If you're looking at the debug output most probably you're having some trouble with this program, so feel free to email me at konicksdev@gmail.com and I'll see if I can help \n");
+		print("If you're looking at the debug output most probably you're having some trouble with this program, so feel free to email me at [ioachim.radu@protonmail.com] and I'll see if I can help \n");
 	}
+}
+
+
+
+async void update_label_from_istream (InputStream istream, Gtk.TextView label) {
+    try {
+        var dis = new DataInputStream (istream);
+        var line = yield dis.read_line_async ();
+        while (line != null) {
+            label.buffer.text += line + "\n";
+            line = yield dis.read_line_async ();
+        }
+    } catch (Error err) {}
 }
