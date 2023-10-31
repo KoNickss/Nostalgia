@@ -66,6 +66,8 @@ For when you need them the most</span>");
 		blue_color.parse("#0860F2");
 		var green_color = new Gdk.RGBA();
 		green_color.parse("#59C837");
+		var black_color = new Gdk.RGBA();
+		black_color.parse("#15161E");
 		button1.override_background_color(Gtk.StateFlags.NORMAL, green_color);
 		var gridfb = new Gtk.Grid();
 		gridfb.attach(button1, 1, 1);
@@ -135,7 +137,7 @@ so please be patient and let us get your system back and running"), true, false,
 			}
 		});
 		cr12.pack_start(crbackbutton, false, false, 10);
-		var packhome = new Gtk.Switch();
+		/*var packhome = new Gtk.Switch();
 		packhome.set_state(true);
 		var cr14 = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
 		cr14.pack_start(new Gtk.Label(""), true, true, 10);
@@ -145,6 +147,37 @@ so please be patient and let us get your system back and running"), true, false,
 		cr14.pack_start(packhome, false, false, 10);
 		cr14.pack_start(new Gtk.Label(""), true, true, 10);
 		cr1.pack_start(cr14, false, false, 0);
+		*/
+
+		var cr15 = new Gtk.Box(Gtk.Orientation.VERTICAL, 20);
+
+		var ExcludePanel = new Gtk.ScrolledWindow(null, null);
+		
+		var ExcludeListLabel = new Gtk.Label("Type Every Folder to be EXCLUDED from the Backup, using ABSOLUTE paths, one per line");
+
+		var ExcludeList = new Gtk.TextView();
+		ExcludeList.set_editable(true);
+		ExcludeList.set_cursor_visible(true);
+		ExcludeList.override_background_color(Gtk.StateFlags.NORMAL, black_color);
+
+		ExcludePanel.set_border_width(10);
+		ExcludePanel.set_max_content_height(50);
+
+		ExcludePanel.add(ExcludeList);
+
+		cr15.pack_start(ExcludeListLabel);
+
+		var cr151 = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 20);
+		cr151.pack_start(new Gtk.Label(null), false, false, 5);
+
+		cr151.pack_start(ExcludePanel);
+
+		cr151.pack_start(new Gtk.Label(null), false, false, 5);
+
+		cr15.pack_start(cr151, false, false ,0);
+
+		cr1.pack_start(cr15, false, false, 0);
+
 		var finbutcr = new Gtk.Button.with_label("✔ Make snapshot");
 		finbutcr.override_background_color(Gtk.StateFlags.NORMAL, green_color);
 		cr12.pack_end(finbutcr, false, false, 10);
@@ -153,6 +186,7 @@ so please be patient and let us get your system back and running"), true, false,
 				print(crloc1.get_filename());
 				string loc = crloc1.get_filename();
 				print("\n");
+				print(crloc1.get_filename());
 				if (crloc1.get_filename() == null){
 					var ibl = new Gtk.Dialog.with_buttons("Invaild backup location", this, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT | Gtk.DialogFlags.USE_HEADER_BAR, null);
 					var iblca = ibl.get_content_area();
@@ -176,13 +210,24 @@ so please be patient and let us get your system back and running"), true, false,
 
 					var lbl = new Gtk.TextView();
 					lbl.set_wrap_mode (Gtk.WrapMode.WORD);
-					lbl.set_monospace(true);
+					//lbl.set_monospace(true);
+					lbl.override_background_color(Gtk.StateFlags.NORMAL, black_color);
 
 					var lblScroll = new Gtk.ScrolledWindow(null, null);
 					lblScroll.add(lbl);
-					lblScroll.set_max_content_height(100);
+					lblScroll.set_max_content_height(600);
 					
 					progresscr.pack_start(lblScroll);
+
+					var ProgBar = new Gtk.ProgressBar();
+					
+					progresscr.pack_end(ProgBar);
+
+					var ProgLabel = new Gtk.Label("Nostalgia Progress: 0%");
+
+					progresscr.pack_end(ProgLabel);
+
+
 					//The length will never be the same if the file is not found
 					if(isfile.char_count() != isft.char_count()){
 						print("\n root backup \n");
@@ -199,7 +244,12 @@ so please be patient and let us get your system back and running"), true, false,
 					int dum;
 					bool lop=true;
 
-					string[] backup_command = {"/usr/bin/rsync", "-av", "/home/ioachim/Music", "/home/ioachim/Music2", "--no-i-r", "--info=progress2", null};
+					string[] backup_command_template = {"/usr/bin/pkexec", "/usr/bin/rsync", "-ahv", "/home/ioachim/Music", "/home/ioachim/Music2", "--no-i-r", "--info=progress2", "--fsync", null};
+
+					var ExcludeFolders = ExcludeList.get_text().split('\n');
+
+					
+
 
 					var ChildProcessBackup = new Subprocess.newv(backup_command, SubprocessFlags.STDOUT_PIPE);
 
@@ -215,16 +265,41 @@ so please be patient and let us get your system back and running"), true, false,
 							notification.set_timeout(0);
 							notification.show();
 
+							print("\nREMOVING CHILDREN FROM PAGE\n");
+							var progresscrChildren = progresscr.get_children();
+							foreach (Gtk.Widget element in progresscrChildren)
+  								progresscr.remove(element);
+
 
 						}catch(Error err){
 							print("\n\n------ERROR!!!------\n%s\n\n", err.message);
+
+							createstack.set_visible_child(cr1);
+
+							var ibl = new Gtk.Dialog.with_buttons("Error Spawning Process", this, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT | Gtk.DialogFlags.USE_HEADER_BAR, null);
+							var iblca = ibl.get_content_area();
+							iblca.add(new Gtk.Label("
+
+							"));
+							iblca.add(new Gtk.Label("	Make sure /usr/bin/rsync is installed, up to date and that you have root privileges and have inputed your correct user password	"));
+							iblca.add(new Gtk.Label("
+							
+							"));
+							ibl.show_all();
+
+							print("\nREMOVING CHILDREN FROM PAGE\n");
+							var progresscrChildren = progresscr.get_children();
+							foreach (Gtk.Widget element in progresscrChildren)
+  								progresscr.remove(element);
+
+							ssnap = false;
 						}
 					});
 
 
 					var OutputPipeBackup = ChildProcessBackup.get_stdout_pipe();
 
-					update_label_from_istream.begin(OutputPipeBackup, lbl);	
+					update_label_from_istream.begin(OutputPipeBackup, lbl, ProgBar, ProgLabel);	
 					
 				}
 			}
@@ -241,19 +316,58 @@ so please be patient and let us get your system back and running"), true, false,
 		set_resizable(false);
 		show_all();
 		print("Hey, thanks for choosing nostalgia! \n");
-		print("If you're looking at the debug output most probably you're having some trouble with this program, so feel free to email me at [ioachim.radu@protonmail.com] and I'll see if I can help \n");
+		print("If you're looking at the debug output most probably you're having some trouble with this program, so feel free to contact me and I'll see if I can help \n");
+		print("\n\n");
+		print("email: [ioachim.radu@protonmail.com]\n");
+		print("webpage: [ioachim.eu.org]\n");
+		print("pgp: [C2462D5103FA6059E1E3279C9E9299CD96C65EC6]\n");
+		print("\n\n");
 	}
 }
 
+int timer = 0;
 
-
-async void update_label_from_istream (InputStream istream, Gtk.TextView label) {
+async void update_label_from_istream (InputStream istream, Gtk.TextView label, Gtk.ProgressBar ProgBar, Gtk.Label ProgLabel) {
     try {
+		
         var dis = new DataInputStream (istream);
         var line = yield dis.read_line_async ();
         while (line != null) {
+			if(timer == 5){
+				label.buffer.text = "";
+				timer = 0;
+			}
             label.buffer.text += line + "\n";
+			print(line);
+			print("\n");
+
+			var words = line.split(" ");
+
+			foreach(unowned string word in words){
+				if(word[word.length - 1] == '%'){
+					var word_trimmed = word.substring(0, word.length - 1);
+					double procDone = (double)StrToInt(word_trimmed) / (double)100;
+					ProgBar.set_fraction(procDone);
+					ProgBar.set_text(word_trimmed);
+					ProgLabel.set_text(word_trimmed + "%");
+
+					print(procDone.to_string() + " ");
+				}
+			}
+
+			timer++;
             line = yield dis.read_line_async ();
         }
     } catch (Error err) {}
+}
+
+
+int StrToInt(string str){
+	int ret = 0;
+	for(int i = 0; i < str.length; i++){
+		ret *= 10;
+		ret += (str[i] - '0'); //get char code offset to zero of digit
+	}
+
+	return ret;
 }
