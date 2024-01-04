@@ -161,7 +161,7 @@ so please be patient and let us get your system back and running"), true, false,
 		ExcludeList.override_background_color(Gtk.StateFlags.NORMAL, black_color);
 
 		ExcludePanel.set_border_width(10);
-		ExcludePanel.set_max_content_height(50);
+		ExcludePanel.set_max_content_height(100);
 
 		ExcludePanel.add(ExcludeList);
 
@@ -204,6 +204,9 @@ so please be patient and let us get your system back and running"), true, false,
 					createstack.set_visible_child(progresscr);
 					string isfile;
 					Process.spawn_command_line_sync("file " + crloc1.get_filename() + "/nostalgia.file", out isfile);
+
+					//TODO: Make this use fs syscalls instead of spawning a process
+
 					string isft = crloc1.get_filename() + "/nostalgia.file: empty ";
 					print(isfile);
 					print(isft);
@@ -245,13 +248,16 @@ so please be patient and let us get your system back and running"), true, false,
 					bool lop=true;
 
 					string[] backup_command_template = {"/usr/bin/pkexec", "/usr/bin/rsync", "-ahv", "/home/ioachim/Music", "/home/ioachim/Music2", "--no-i-r", "--info=progress2", "--fsync", null};
+					// --exclude-from="file.txt" EXCLUDES CONTENTS OF FILE EACH ON A LINE
+					//TODO: Create config file ~/.config/nostalgia/exclude_list.txt using GLib.Environment.get_home_dir() and FileUtils and read exclude list from that (piped directly from tetxbox)
 
-					var ExcludeFolders = ExcludeList.get_text().split('\n');
 
+					var ExcludeFolders = ExcludeList.get_buffer().get_text(ExcludeList.get_buffer().get_start_iter(), ExcludeList.get_buffer().get_end_iter(), false);
+					//FIXME: DOESNT WORK ANYMORE??????
 					
 
 
-					var ChildProcessBackup = new Subprocess.newv(backup_command, SubprocessFlags.STDOUT_PIPE);
+					var ChildProcessBackup = new Subprocess.newv(backup_command_template, SubprocessFlags.STDOUT_PIPE);
 
 					ChildProcessBackup.wait_check_async.begin(null, (obj, res) => {
 						try{
