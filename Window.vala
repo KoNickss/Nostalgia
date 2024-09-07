@@ -181,6 +181,58 @@ so please be patient and let us get your system back and running"), true, false,
 		var finbutcr = new Gtk.Button.with_label("✔ Make snapshot");
 		finbutcr.override_background_color(Gtk.StateFlags.NORMAL, green_color);
 		cr12.pack_end(finbutcr, false, false, 10);
+
+
+		//CONFIG FILE
+
+		//var ExcludeFolders = ExcludeList.get_buffer().get_text(ExcludeList.get_buffer().get_start_iter(), ExcludeList.get_buffer().get_end_iter(), false);
+		
+		//var ExcludeFolders = ExcludeList.buffer.text;
+
+		//print(ExcludeFolders);
+
+		var configData = "";
+
+		var configFolderLoc = GLib.Environment.get_home_dir().concat("/.config/nostalgia");
+
+		print(configFolderLoc);
+
+		File configFolder = File.new_for_path(configFolderLoc);
+
+		if(!configFolder.query_exists()) configFolder.make_directory();
+
+		var configFileLoc = configFolderLoc.concat("/exclude_list.txt");
+
+		File configFile = File.new_for_path(configFileLoc);
+
+		if(configFile.query_exists()){
+			//config file exists
+			print("\nREADING CONFIG FILE\n");
+			FileInputStream @is = configFile.read();
+			DataInputStream dis = new DataInputStream(@is);
+			string line;
+			print("\nFILE OPENED\n");
+			while((line = dis.read_line()) != null){
+				print("\nREAD LINE\n");
+				configData = configData.concat(line, "\n");
+				print("\nDONE\n");
+			}
+			if(configData == ""){
+				configFile.replace_contents("/dev\n/proc\n/sys\n/tmp\n/run\n/mnt\n/media\n/cdrom\n/lost+found\n\n".data, null, false, FileCreateFlags.NONE, null);
+				configData = "/dev\n/proc\n/sys\n/tmp\n/run\n/mnt\n/media\n/cdrom\n/lost+found\n\n";
+			}
+			ExcludeList.buffer.text = configData;
+
+		}else{
+			//no config file yet
+			configFile.create(FileCreateFlags.PRIVATE);
+			configFile.replace_contents("/dev\n/proc\n/sys\n/tmp\n/run\n/mnt\n/media\n/cdrom\n/lost+found\n\n".data, null, false, FileCreateFlags.NONE, null);
+			configData = "/dev\n/proc\n/sys\n/tmp\n/run\n/mnt\n/media\n/cdrom\n/lost+found\n\n";
+			ExcludeList.buffer.text = configData;
+		}
+
+
+
 		finbutcr.clicked.connect (() => {
 			if(!ssnap){
 				print(crloc1.get_filename());
@@ -202,14 +254,17 @@ so please be patient and let us get your system back and running"), true, false,
 				}else{
 					ssnap=true;
 					createstack.set_visible_child(progresscr);
-					string isfile;
-					Process.spawn_command_line_sync("file " + crloc1.get_filename() + "/nostalgia.file", out isfile);
+					//string isfile;
+					//Process.spawn_command_line_sync("file " + crloc1.get_filename() + "/nostalgia.file", out isfile);
 
-					//TODO: Make this use fs syscalls instead of spawning a process
+					//DONE (dumb af that i didnt do this in the first place lazy ahh): Make this use fs syscalls instead of spawning a process
 
-					string isft = crloc1.get_filename() + "/nostalgia.file: empty ";
-					print(isfile);
-					print(isft);
+					//string isft = crloc1.get_filename() + "/nostalgia.file: empty ";
+
+					File nostalgiaFile = File.new_for_path(crloc1.get_filename().concat("/nostalgia.file"));
+
+
+					bool isNostalgiaFile = nostalgiaFile.query_exists();
 
 					var lbl = new Gtk.TextView();
 					lbl.set_wrap_mode (Gtk.WrapMode.WORD);
@@ -231,8 +286,7 @@ so please be patient and let us get your system back and running"), true, false,
 					progresscr.pack_end(ProgLabel);
 
 
-					//The length will never be the same if the file is not found
-					if(isfile.char_count() != isft.char_count()){
+					if(!isNostalgiaFile){
 						print("\n root backup \n");
 						string testx;
 						//Process.spawn_command_line_sync("bash command", out testx);
@@ -247,14 +301,14 @@ so please be patient and let us get your system back and running"), true, false,
 					int dum;
 					bool lop=true;
 
-					string[] backup_command_template = {"/usr/bin/pkexec", "/usr/bin/rsync", "-ahv", "/home/ioachim/Music", "/home/ioachim/Music2", "--no-i-r", "--info=progress2", "--fsync", null};
+					ExcludeList.buffer.text = ExcludeList.buffer.text.concat("\n");
+
+
+					configFile.replace_contents(ExcludeList.buffer.text.data, null, false, FileCreateFlags.NONE, null);
+
+					string[] backup_command_template = {"/usr/bin/pkexec", "/usr/bin/rsync", "-ahv", "/home/ioachim/Music", "/home/ioachim/Music2", "--no-i-r", "--info=progress2", "--fsync", "--exclude-from=".concat(configFileLoc), null};
 					// --exclude-from="file.txt" EXCLUDES CONTENTS OF FILE EACH ON A LINE
-					//TODO: Create config file ~/.config/nostalgia/exclude_list.txt using GLib.Environment.get_home_dir() and FileUtils and read exclude list from that (piped directly from tetxbox)
-
-
-					var ExcludeFolders = ExcludeList.get_buffer().get_text(ExcludeList.get_buffer().get_start_iter(), ExcludeList.get_buffer().get_end_iter(), false);
-					//FIXME: DOESNT WORK ANYMORE??????
-					
+					//TODO: Replace command with proper one
 
 
 					var ChildProcessBackup = new Subprocess.newv(backup_command_template, SubprocessFlags.STDOUT_PIPE);
